@@ -3,14 +3,20 @@ struct ctx_s ctx_ping;
 struct ctx_s ctx_pong;
 struct ctx_s ctx_init;
 void ping(){
-	while( 1 ) {
-	switch_to(&ctx_pong);
-	}
+
+	int cpt = 0;
+    while ( 1 ) {
+        cpt ++;
+        switch_to(&ctx_pong);
+    }
 }
 void pong() {
-	while( 1 ) {
-	switch_to(&ctx_ping);
-	}
+
+	int cpt = 1;
+    while( 1 ) {
+        cpt += 2 ;
+        switch_to(&ctx_ping);
+    }
 }
 
 

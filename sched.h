@@ -1,4 +1,4 @@
-#define STACK_SIZE 4 //Car pas de variables locales
+#define STACK_SIZE 1024 //Car pas de variables locales
 
 typedef void (*func_t) ( void);
 
