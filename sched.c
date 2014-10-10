@@ -23,7 +23,7 @@ void __attribute__ ((naked)) switch_to(struct ctx_s* ctx)
 	current_ctx = ctx; 
 	
 	//Restaurer ce nouveau contexte
-c
+
 	__asm("mov sp, %0" : : "r"((*current_ctx).sp));
 	__asm("mov lr, %0" : : "r"((*current_ctx).lr));
     __asm("pop {r0-r12}"); 
