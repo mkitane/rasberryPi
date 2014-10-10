@@ -1,32 +1,27 @@
 #include "sched.h"
-struct ctx_s ctx_ping;
-struct ctx_s ctx_pong;
-struct ctx_s ctx_init;
-void ping(){
+#include "hw.h"
 
-	int cpt = 0;
-    while ( 1 ) {
-        cpt ++;
-        switch_to(&ctx_pong);
-    }
+void funcA() {
+	int cptA = 0;
+	while ( 1 ) {
+		cptA ++;
+		ctx_switch();
+	}
 }
-void pong() {
-
-	int cpt = 1;
-    while( 1 ) {
-        cpt += 2 ;
-        switch_to(&ctx_ping);
-    }
+void funcB() {
+	int cptB = 1;
+	while ( 1 ) {
+		cptB += 2 ;
+		ctx_switch();
+	}
 }
-
-
 //------------------------------------------------------------------------
-int kmain (void){
+int kmain ( void){
 	init_hw();
-	init_ctx(&ctx_ping, ping, STACK_SIZE);
-	init_ctx(&ctx_pong, pong, STACK_SIZE);
-	current_ctx = &ctx_init;
-	switch_to(&ctx_ping);
-	/* Pas atteignable vues nos 2 fonctions */
-	return (0);
+	create_process(funcB, NULL, STACK_SIZE);
+	create_process(funcA, NULL, STACK_SIZE);
+	start_sched();
+	ctx_switch();
+/* Pas atteignable vues nos 2 fonctions */
+	return 0;
 }
