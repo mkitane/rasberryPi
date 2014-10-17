@@ -15,9 +15,22 @@ void funcB() {
 		ctx_switch();
 	}
 }
+
+void funcC()
+{
+	int cptC = 2;
+	int i = 0;
+	for(i=0; i<5 ; i++)
+	{
+		cptC += 3 ;
+		ctx_switch();
+	}
+
+}
 //------------------------------------------------------------------------
 int kmain ( void){
 	init_hw();
+	create_process(funcC, NULL, STACK_SIZE);
 	create_process(funcB, NULL, STACK_SIZE);
 	create_process(funcA, NULL, STACK_SIZE);
 	start_sched();

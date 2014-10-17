@@ -23,9 +23,9 @@ void init_pcb(struct pcb_s* pcb, func_t f, void* args, unsigned int stack_size){
 	(*pcb).args_f = args;
 
 
-	(*pcb).adress = (int*)&start_current_process;   //Car start_current_process() est appelée pour
+	(*pcb).adress = f;   //Car start_current_process() est appelée pour
                                                     //lancer un processus (pour la première fois)
-	(*pcb).sp = ((int)phyAlloc_alloc(stack_size)) + stack_size;
+	(*pcb).sp = ((int)phyAlloc_alloc(stack_size)) -13*4 + stack_size;
 
 }
 int create_process(func_t f, void* args, unsigned int stack_size)
@@ -37,8 +37,8 @@ int create_process(func_t f, void* args, unsigned int stack_size)
 		first_process = pcb; 
 		last_process = pcb;
         
-        first_process->next = last_process;
-        last_process->next = first_process;
+        first_process->next_process = last_process;
+        last_process->next_process = first_process;
 	}else{
 		last_process->next_process = pcb; 
 		pcb->next_process = first_process;
@@ -49,41 +49,43 @@ int create_process(func_t f, void* args, unsigned int stack_size)
 	return pcb->id_process;
 }
 
-void start_current_process()
-{
-	current_process->state_process = READY ; 
-	current_process->function(current_process->args_f);
-	current_process->state_process = TERMINATED;
-	ctx_switch();
-}
 
 void elect ()
 {
     struct pcb_s* pcb = current_process;
 
     //On trouve le suivant qui n'est pas TERMINATED
-    while(pcb->next->state_process != TERMINATED){
-        if (pcb->next->id_process == current_process->id_process) { break; }
-        pcb = pcb ->next;
+    while(pcb->next_process->state_process != TERMINATED){
+        if (pcb->next_process->id_process == current_process->id_process) { break; }
+        pcb = pcb ->next_process;
     }
     
+    current_process = pcb;
+
+
     //On supprime ceux qui sont terminated
-    if(pcb->next->state_process == TERMINATED){  //Q4.9
-        struct pcb_s* temp = pcb-> next;
-        //throw it out of the list
-        pcb->next = pcb->next->next;
-        phyAlloc_free(temp,sizeof(struct pcb_s));
-    }
+	int pid_boucle = pcb->id_process;
+	while(pid_boucle != pcb->next_process->id_process)
+	{
+		if(pcb->next_process->state_process == TERMINATED){  //Q4.9
+        	struct pcb_s* temp = pcb-> next_process;
+        	//throw it out of the list
+        	pcb->next_process = pcb->next_process->next_process;
+        	phyAlloc_free(temp,sizeof(struct pcb_s));
+    	}
+		pcb = pcb->next_process;
+	}
     
     
-    current_process = pcb->next;
+    
+
     
 }
 
 
 void start_sched()
 {
-    current_process->next = first_process;
+    current_process = first_process; 
 }
 
 
@@ -106,7 +108,16 @@ void __attribute__ ((naked)) ctx_switch() //Current process non initialisé?
     __asm("mov lr, %0" : : "r"(current_process->adress));
     __asm("pop {r0-r12}");
     //Sauter a ladresse de retour du contexte restaure
-    __asm("bx lr");
-    
+
+	if(current_process->state_process == NEW)
+	{
+		current_process->state_process = READY ; 
+		current_process->function();
+		current_process->state_process = TERMINATED;
+		ctx_switch();
+	}else{
+		current_process->state_process = RUNNING;
+	}
+   	__asm("bx lr");
 }
 
