@@ -3,16 +3,6 @@ static struct pcb_s* first_process = (struct pcb_s *)0;
 static struct pcb_s* last_process = (struct pcb_s *)0;  
 static struct pcb_s* current_process = (struct pcb_s *)0;  
 
-
-void init_ctx(struct ctx_s* ctx, func_t f, unsigned int stack_size){
-
-	(*ctx).lr = f; 
-	(*ctx).sp = ((int)phyAlloc_alloc(stack_size)) + stack_size;
-    //on caste en int car sinon on a le void et il peut faire une adition en multipliant le stack_size par 4.
-}
-
-
-
 void init_pcb(struct pcb_s* pcb, func_t f, void* args, unsigned int stack_size){
 	static int compteur = 0; 
 	(*pcb).id_process = compteur++; 
@@ -26,7 +16,7 @@ void init_pcb(struct pcb_s* pcb, func_t f, void* args, unsigned int stack_size){
 	(*pcb).adress = f;   //Car start_current_process() est appelée pour
                                                     //lancer un processus (pour la première fois)
 	(*pcb).sp = ((int)phyAlloc_alloc(stack_size)) -13*4 + stack_size;
-
+ //on caste en int car sinon on a le void et il peut faire une adition en multipliant le stack_size par 4.
 }
 int create_process(func_t f, void* args, unsigned int stack_size)
 {
@@ -92,8 +82,43 @@ void start_sched()
 
 void ctx_switch_from_irq()
 {
-	ENABLE_IRQ();
-	set_tick_and_enable_timer();
+	   
+	DISABLE_IRQ();
+	__asm("sub lr, lr, #4");
+	__asm("srsdb sp!, #0x13");
+	__asm("cps #0x13");
+
+
+ //Sauvegarder contexte courant
+    
+    //Enregistrer les registres
+    __asm("push {r0-r12}");
+    __asm("mov %0, sp" : "=r"(current_process->sp));
+    __asm("mov %0, lr" : "=r"(current_process->adress));
+    
+    //elect a new process
+    elect();
+    
+    //Restaurer ce nouveau contexte
+    __asm("mov sp, %0" : : "r"(current_process->sp));
+    __asm("mov lr, %0" : : "r"(current_process->adress));
+    __asm("pop {r0-r12}");
+    //Sauter a ladresse de retour du contexte restaure
+
+    set_tick_and_enable_timer();
+    ENABLE_IRQ();
+
+	if(current_process->state_process == NEW)
+	{
+		current_process->state_process = READY ; 
+		current_process->function();
+		current_process->state_process = TERMINATED;
+	}else{
+		current_process->state_process = RUNNING;
+	}
+   	__asm("bx lr");
+
+   __asm("rfeia sp!");                                    
 }
 void __attribute__ ((naked)) ctx_switch() //Current process non initialisé?
 {

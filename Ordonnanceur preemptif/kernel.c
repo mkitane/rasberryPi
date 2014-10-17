@@ -30,11 +30,11 @@ void funcC()
 //------------------------------------------------------------------------
 int kmain ( void){
 	init_hw();
-	create_process(funcC, NULL, STACK_SIZE);
 	create_process(funcB, NULL, STACK_SIZE);
 	create_process(funcA, NULL, STACK_SIZE);
 	start_sched();
-	ctx_switch();
+	//ctx_switch();
+	while(1){}
 /* Pas atteignable vues nos 2 fonctions */
 	return 0;
 }
